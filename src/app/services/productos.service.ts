@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Producto } from '../interfaces/producto.interface';
+import { ResolveEnd } from '@angular/router';
+import { TemplateBindingParseResult } from '@angular/compiler';
 
 @Injectable({
   providedIn: 'root'
@@ -9,6 +11,7 @@ export class ProductosService {
 
   cargando = true;
   productos: Producto[] = [];
+  productosFiltrado: Producto[] = [];
 
 
 
@@ -21,17 +24,60 @@ export class ProductosService {
 
   private cargarProductos() {
 
-    this.http.get('https://angular-html-82bab-default-rtdb.firebaseio.com/productos_idx.json')
-      .subscribe( (resp: any) => {
+    return new Promise<void>( ( resolve, reject) => {
 
-      console.log(resp);
+      this.http.get('https://angular-html-82bab-default-rtdb.firebaseio.com/productos_idx.json')
+        .subscribe( (resp: any) => {
+        this.productos = resp;
+        this.cargando = false;
+        resolve();
+      });
 
-      this.productos = resp;
-      this.cargando = false;
-
-      
     });
 
+    
+
   }
+
+  getProducto( id: string ) {
+    return this.http.get(`https://angular-html-82bab-default-rtdb.firebaseio.com/productos/${ id }.json`);
+  } 
+
+  buscarProducto( termino: string ) {
+
+    if ( this.productos.length === 0 ) {
+      // cargar productos
+      this.cargarProductos().then( ()=> {
+        // ejecutar después de tener los productos
+        // Aplicar filtro
+        this.filtrarProductos( termino );
+      });
+
+    } else {
+      // aplicar el filtro
+      this.filtrarProductos( termino )
+    }
+    
+    
+  }
+
+  private filtrarProductos ( termino: string ) {
+
+    // console.log(this.productos);
+    this.productosFiltrado = [];
+
+    termino = termino.toLowerCase();
+
+    this.productos.forEach( prod => {
+
+      const tituloLower = prod.titulo.toLowerCase();
+
+      if( prod.categoria.indexOf( termino ) >= 0 || tituloLower.indexOf(termino) >= 0 ) {
+        this.productosFiltrado.push( prod );
+      }
+    });  
+
+  } 
+
 
 }
